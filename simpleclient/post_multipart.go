@@ -3,32 +3,31 @@ package main
 import (
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 	"bytes"
 	"mime/multipart"
 	"io"
+	"net/textproto"
 )
 
-func main(){
+func main() {
 	var buffer bytes.Buffer
 	writer := multipart.NewWriter(&buffer)
 	writer.WriteField("name", "Michael Jackson")
 
-	fileWriter, err := writer.CreateFormFile("thumbnail", "photo.jpg")
-
+	part := make(textproto.MIMEHeader)
+	part.Set("Content-Type", "image/jpeg")
+	part.Set("Content-Disposition", `form-data; name="thumbnail"; filename= "photo.jpg"`)
+	fileWriter, err := writer.CreatePart(part)
 	if err != nil {
 		panic(err)
 	}
-
 	readFile, err := os.Open("photo.jpg")
 	if err != nil {
 		panic(err)
 	}
-
-	defer readFile.Close()
 	io.Copy(fileWriter, readFile)
+	defer readFile.Close()
 	writer.Close()
 
 	resp, err := http.Post("http://localhost:18888", writer.FormDataContentType(), &buffer)
